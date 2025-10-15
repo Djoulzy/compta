@@ -24,40 +24,102 @@ code {
 .header {
   background-color: #2c3e50;
   color: white;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 0.75rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 60px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header h1 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .menu {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .menu button {
   background-color: #3498db;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: background-color 0.3s;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .menu button:hover {
   background-color: #2980b9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.menu button:active {
+  transform: translateY(0);
+}
+
+/* Responsive pour le header */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .header h1 {
+    font-size: 1.1rem;
+  }
+
+  .menu {
+    gap: 0.4rem;
+  }
+
+  .menu button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu button {
+    font-size: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .menu button::before {
+    font-size: 1rem;
+  }
 }
 
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
 }
 
 .card {
@@ -65,7 +127,7 @@ code {
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .card h2 {
@@ -176,6 +238,84 @@ table tr:hover {
   margin-bottom: 1rem;
 }
 
+/* Filters compacts pour maximiser l'espace du tableau */
+.filters-card {
+  margin-bottom: 0.75rem !important;
+  padding: 0.75rem !important;
+}
+
+.filters-card h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.filters-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.form-group-compact {
+  min-width: 150px;
+  flex: 1;
+}
+
+.form-group-compact input,
+.form-group-compact select {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+}
+
+.form-group-compact input:focus,
+.form-group-compact select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.form-group-compact input::placeholder {
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.btn-compact {
+  padding: 0.4rem 0.8rem !important;
+  font-size: 1rem !important;
+  min-width: auto !important;
+  flex-shrink: 0;
+}
+
+/* Responsive pour les filtres compacts */
+@media (max-width: 768px) {
+  .filters-compact {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-group-compact {
+    min-width: 100%;
+  }
+
+  .btn-compact {
+    align-self: center;
+    min-width: 120px;
+  }
+}
+
+@media (min-width: 769px) {
+  .form-group-compact:first-child {
+    flex: 2;
+    /* Le champ de recherche prend plus de place */
+    min-width: 250px;
+  }
+}
+
 .balance {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -224,6 +364,392 @@ table tr:hover {
   z-index: 1000;
 }
 
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content.large {
+  max-width: 800px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  color: #e74c3c;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.compte-form {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.comptes-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.compte-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  background-color: #fff;
+}
+
+.compte-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: #2c3e50;
+}
+
+.compte-info .compte-nom {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  margin: 0 0 0.25rem 0;
+}
+
+.compte-info .compte-description {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin: 0 0 0.5rem 0;
+}
+
+.compte-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.compte-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Optimisation du tableau des opérations */
+.operations-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Important pour permettre au tableau de scroller */
+}
+
+.operations-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.operations-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.operations-count {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  background-color: #ecf0f1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+.operations-table-container {
+  flex: 1;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
+  /* Réduit de 250px à 200px */
+}
+
+.operations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.operations-table th {
+  background-color: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.operations-table th:hover {
+  background-color: #e9ecef;
+  cursor: pointer;
+}
+
+.operations-table td {
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: top;
+}
+
+.operations-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Colonnes spécifiques du tableau */
+.operations-table th:nth-child(1),
+.operations-table td:nth-child(1) {
+  width: 90px;
+  min-width: 90px;
+}
+
+.operations-table th:nth-child(2),
+.operations-table td:nth-child(2) {
+  width: 90px;
+  min-width: 90px;
+}
+
+.operations-table th:nth-child(3),
+.operations-table td:nth-child(3) {
+  width: auto;
+  min-width: 200px;
+}
+
+.operations-table th:nth-child(4),
+.operations-table td:nth-child(4) {
+  width: 100px;
+  min-width: 100px;
+  text-align: right;
+}
+
+.operations-table th:nth-child(5),
+.operations-table td:nth-child(5) {
+  width: 80px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.operations-table th:nth-child(6),
+.operations-table td:nth-child(6) {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+}
+
+.operations-table th:nth-child(7),
+.operations-table td:nth-child(7) {
+  width: 150px;
+  min-width: 150px;
+}
+
+/* Amélioration de l'affichage sur mobile */
+@media (max-width: 768px) {
+  .operations-table-container {
+    max-height: calc(100vh - 240px);
+    /* Réduit de 300px à 240px */
+  }
+
+  .operations-table th:nth-child(2),
+  .operations-table td:nth-child(2) {
+    display: none;
+    /* Cacher la date de valeur sur mobile */
+  }
+
+  .operations-table th:nth-child(6),
+  .operations-table td:nth-child(6) {
+    display: none;
+    /* Cacher la colonne CB sur mobile */
+  }
+}
+
+/* Layout général pour maximiser l'espace du tableau */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px);
+  /* Réduit de 140px à 100px */
+  gap: 0.75rem;
+}
+
+.balance-sticky {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #2c3e50;
+  color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  border-top: 3px solid #3498db;
+}
+
+.balance-sticky-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.balance-sticky-title h3 {
+  margin: 0;
+  color: #ecf0f1;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.balance-sticky-items {
+  display: flex;
+  flex: 1;
+  gap: 2rem;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.balance-sticky-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.balance-sticky-item .label {
+  font-size: 0.8rem;
+  color: #bdc3c7;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.balance-sticky-item .value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ecf0f1;
+}
+
+.balance-sticky-item.debit .value {
+  color: #e74c3c;
+}
+
+.balance-sticky-item.credit .value {
+  color: #27ae60;
+}
+
+.balance-sticky-item.solde.debit .value {
+  color: #e74c3c;
+}
+
+.balance-sticky-item.solde.credit .value {
+  color: #27ae60;
+}
+
+.balance-sticky-item.operations .value {
+  color: #f39c12;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .balance-sticky-content {
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .balance-sticky-title h3 {
+    font-size: 0.9rem;
+  }
+
+  .balance-sticky-items {
+    gap: 1rem;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .balance-sticky-item {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .balance-sticky-item .label {
+    font-size: 0.7rem;
+  }
+
+  .balance-sticky-item .value {
+    font-size: 0.9rem;
+  }
+}
+
+/* Ajuster le padding du body pour laisser de la place à la balance sticky */
+.app {
+  padding-bottom: 80px;
+  /* Hauteur de la balance sticky */
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding-bottom: 100px;
+    /* Plus d'espace sur mobile car la balance est plus haute */
+  }
+}
+
 .modal {
   background: white;
   border-radius: 8px;
@@ -255,12 +781,24 @@ table tr:hover {
 
 .compte-card:hover {
   border-color: #3498db;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .compte-card h3 {
   color: #2c3e50;
   margin-bottom: 0.5rem;
+}
+
+.compte-card .compte-nom {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.compte-card .compte-description {
+  color: #7f8c8d;
+  font-size: 0.9rem;
 }
 
 .compte-card p {
@@ -355,9 +893,26 @@ table tr:hover {
   text-align: center;
 }
 
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mb-3 { margin-bottom: 1.5rem; }
+.mt-1 {
+  margin-top: 0.5rem;
+}
+
+.mt-2 {
+  margin-top: 1rem;
+}
+
+.mt-3 {
+  margin-top: 1.5rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+  margin-bottom: 1rem;
+}
+
+.mb-3 {
+  margin-bottom: 1.5rem;
+}

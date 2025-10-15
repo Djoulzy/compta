@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getOperations, getTags } from '../services/api';
-import Balance from './Balance';
 
-function OperationsTable({ compteId }) {
+function OperationsTable({ compteId, onFiltersChange }) {
   const [operations, setOperations] = useState([]);
   const [tags, setTags] = useState([]);
   const [filters, setFilters] = useState({
@@ -26,7 +25,7 @@ function OperationsTable({ compteId }) {
         console.error('Erreur lors du chargement des tags:', error);
       }
     };
-    
+
     loadTags();
   }, []);
 
@@ -40,13 +39,18 @@ function OperationsTable({ compteId }) {
       try {
         const response = await getOperations(filters);
         setOperations(response.data);
+
+        // Notifier le parent des changements de filtres pour la balance sticky
+        if (onFiltersChange) {
+          onFiltersChange(filters);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des opérations:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadOperations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
@@ -99,120 +103,118 @@ function OperationsTable({ compteId }) {
 
   return (
     <>
-      <Balance compteId={compteId} filters={filters} />
-      
-      <div className="card">
-        <h2>Filtres et Recherche</h2>
-        
-        <div className="filters">
-          <div className="form-group">
-            <label>Recherche (Libellé)</label>
+      <div className="card filters-card">
+        <h3>Filtres</h3>
+
+        <div className="filters-compact">
+          <div className="form-group-compact">
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Rechercher dans les libellés..."
               value={filters.recherche}
               onChange={(e) => handleFilterChange('recherche', e.target.value)}
             />
           </div>
 
-          <div className="form-group">
-            <label>Débit/Crédit</label>
+          <div className="form-group-compact">
             <select
               value={filters.debit_credit}
               onChange={(e) => handleFilterChange('debit_credit', e.target.value)}
             >
-              <option value="">Tous</option>
+              <option value="">Débit/Crédit</option>
               <option value="D">Débit</option>
               <option value="C">Crédit</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Carte Bancaire</label>
+          <div className="form-group-compact">
             <select
               value={filters.cb}
               onChange={(e) => handleFilterChange('cb', e.target.value)}
             >
-              <option value="">Tous</option>
+              <option value="">Carte bancaire</option>
               <option value="true">Oui</option>
               <option value="false">Non</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Tag</label>
+          <div className="form-group-compact">
             <select
               value={filters.tag}
               onChange={(e) => handleFilterChange('tag', e.target.value)}
             >
-              <option value="">Tous</option>
+              <option value="">Tous les tags</option>
               {tags.map(tag => (
                 <option key={tag.id} value={tag.cle}>{tag.cle}</option>
               ))}
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Mois</label>
+          <div className="form-group-compact">
             <select
               value={filters.mois}
               onChange={(e) => handleFilterChange('mois', e.target.value)}
             >
-              <option value="">Tous</option>
+              <option value="">Tous les mois</option>
               {months.map(month => (
                 <option key={month.value} value={month.value}>{month.label}</option>
               ))}
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Année</label>
+          <div className="form-group-compact">
             <select
               value={filters.annee}
               onChange={(e) => handleFilterChange('annee', e.target.value)}
             >
-              <option value="">Toutes</option>
+              <option value="">Toutes les années</option>
               {years.map(year => (
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
           </div>
-        </div>
 
-        <button
-          className="btn btn-secondary mt-2"
-          onClick={() => setFilters({
-            compte_id: compteId,
-            debit_credit: '',
-            cb: '',
-            tag: '',
-            mois: '',
-            annee: '',
-            recherche: '',
-            tri: 'date_operation_desc'
-          })}
-        >
-          Réinitialiser les filtres
-        </button>
+          <button
+            className="btn btn-secondary btn-compact"
+            onClick={() => setFilters({
+              compte_id: compteId,
+              debit_credit: '',
+              cb: '',
+              tag: '',
+              mois: '',
+              annee: '',
+              recherche: '',
+              tri: 'date_operation_desc'
+            })}
+            title="Réinitialiser les filtres"
+          >
+            ⟲
+          </button>
+        </div>
       </div>
 
-      <div className="card">
-        <h2>Opérations</h2>
-        
+      <div className="card operations-card">
+        <div className="operations-header">
+          <h3>Opérations</h3>
+          {!loading && operations.length > 0 && (
+            <span className="operations-count">{operations.length} opération{operations.length > 1 ? 's' : ''}</span>
+          )}
+        </div>
+
         {loading ? (
           <div className="loading">Chargement...</div>
         ) : operations.length === 0 ? (
           <p className="text-center">Aucune opération trouvée.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table>
+          <div className="operations-table-container">
+            <table className="operations-table">
               <thead>
                 <tr>
                   <th onClick={() => handleSort('date_operation')}>
-                    Date opération{getSortIcon('date_operation')}
+                    Date op.{getSortIcon('date_operation')}
                   </th>
                   <th onClick={() => handleSort('date_valeur')}>
-                    Date valeur{getSortIcon('date_valeur')}
+                    Date val.{getSortIcon('date_valeur')}
                   </th>
                   <th>Libellé</th>
                   <th>Montant</th>
@@ -228,7 +230,7 @@ function OperationsTable({ compteId }) {
                     <td>{formatDate(operation.date_valeur)}</td>
                     <td>{operation.libelle}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <span style={{ 
+                      <span style={{
                         color: operation.debit_credit === 'D' ? '#e74c3c' : '#27ae60',
                         fontWeight: 'bold'
                       }}>

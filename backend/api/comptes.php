@@ -43,14 +43,14 @@ try {
         case 'POST':
             // POST /api/comptes - Créer un nouveau compte
             $data = json_decode(file_get_contents('php://input'), true);
-            
+
             if (empty($data['nom'])) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Le nom du compte est requis']);
                 break;
             }
-            
-            $id = $compteModel->create($data['nom'], $data['description'] ?? '');
+
+            $id = $compteModel->create($data['nom'], $data['description'] ?? '', $data['label'] ?? '');
             $compte = $compteModel->getById($id);
             http_response_code(201);
             echo json_encode($compte);
@@ -63,16 +63,16 @@ try {
                 echo json_encode(['error' => 'ID du compte requis']);
                 break;
             }
-            
+
             $data = json_decode(file_get_contents('php://input'), true);
-            
+
             if (empty($data['nom'])) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Le nom du compte est requis']);
                 break;
             }
-            
-            $success = $compteModel->update($uri[3], $data['nom'], $data['description'] ?? '');
+
+            $success = $compteModel->update($uri[3], $data['nom'], $data['description'] ?? '', $data['label'] ?? '');
             if ($success) {
                 $compte = $compteModel->getById($uri[3]);
                 echo json_encode($compte);
@@ -89,7 +89,7 @@ try {
                 echo json_encode(['error' => 'ID du compte requis']);
                 break;
             }
-            
+
             $success = $compteModel->delete($uri[3]);
             if ($success) {
                 echo json_encode(['success' => true]);
