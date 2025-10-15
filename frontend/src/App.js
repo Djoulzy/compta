@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import CompteSelector from './components/CompteSelector';
 import OperationsTable from './components/OperationsTable';
@@ -9,12 +9,16 @@ import BalanceSticky from './components/BalanceSticky';
 import { getComptes } from './services/api';
 
 function App() {
-  const [currentView, setCurrentView] = useState('operations'); // operations, tags, import, comptes
+  const [currentView, setCurrentView] = useState('operations'); // operations, import
   const [selectedCompte, setSelectedCompte] = useState(null);
   const [showCompteSelector, setShowCompteSelector] = useState(true);
   const [comptes, setComptes] = useState([]);
   const [showCompteManager, setShowCompteManager] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
+
+  // Ref pour accéder aux méthodes d'OperationsTable
+  const operationsTableRef = useRef();
 
   useEffect(() => {
     loadComptes();
@@ -55,6 +59,13 @@ function App() {
     setCurrentFilters(filters);
   };
 
+  const handleTagsUpdated = () => {
+    // Rafraîchir les opérations quand les tags sont modifiés
+    if (operationsTableRef.current) {
+      operationsTableRef.current.refreshAll();
+    }
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -70,8 +81,8 @@ function App() {
               <button onClick={() => setShowCompteManager(true)} title="Gérer les comptes">
                 ⚙️ Editer Comptes
               </button>
-              <button onClick={() => setCurrentView('tags')} title="Gérer les tags">
-                🏷️ Géstion Tags
+              <button onClick={() => setShowTagManager(true)} title="Gérer les tags">
+                🏷️ Tags
               </button>
               <button onClick={() => setCurrentView('import')} title="Importer un fichier CSV">
                 📥 Import CSV
@@ -101,14 +112,11 @@ function App() {
                   )}
                 </div>
                 <OperationsTable
+                  ref={operationsTableRef}
                   compteId={selectedCompte.id}
                   onFiltersChange={handleFiltersChange}
                 />
               </>
-            )}
-
-            {currentView === 'tags' && (
-              <TagManager />
             )}
 
             {currentView === 'import' && (
@@ -121,6 +129,13 @@ function App() {
           <CompteManager
             onClose={() => setShowCompteManager(false)}
             onUpdate={loadComptes}
+          />
+        )}
+
+        {showTagManager && (
+          <TagManager
+            onClose={() => setShowTagManager(false)}
+            onUpdate={handleTagsUpdated}
           />
         )}
 

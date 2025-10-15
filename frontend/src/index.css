@@ -840,6 +840,76 @@ table tr:hover {
   font-size: 0.85rem;
 }
 
+/* Styles spécifiques pour le TagManager modal */
+.tag-form {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.tags-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.tags-list .tag-item {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  padding: 1rem;
+}
+
+.tags-list .tag-item:last-child {
+  margin-bottom: 0;
+}
+
+.tags-list .tag-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.tags-list .tag-info .tag-valeur {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.form-text {
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+.alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.alert-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
 .upload-area {
   border: 2px dashed #ddd;
   border-radius: 8px;

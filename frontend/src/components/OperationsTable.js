@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getOperations, getTags } from '../services/api';
 
-function OperationsTable({ compteId, onFiltersChange }) {
+const OperationsTable = forwardRef(({ compteId, onFiltersChange }, ref) => {
   const [operations, setOperations] = useState([]);
   const [tags, setTags] = useState([]);
   const [filters, setFilters] = useState({
@@ -17,40 +17,50 @@ function OperationsTable({ compteId, onFiltersChange }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadTags = async () => {
-      try {
-        const response = await getTags();
-        setTags(response.data);
-      } catch (error) {
-        console.error('Erreur lors du chargement des tags:', error);
-      }
-    };
-
     loadTags();
   }, []);
+
+  const loadTags = async () => {
+    try {
+      const response = await getTags();
+      setTags(response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des tags:', error);
+    }
+  };
+
+  const loadOperations = async () => {
+    setLoading(true);
+    try {
+      const response = await getOperations(filters);
+      setOperations(response.data);
+
+      // Notifier le parent des changements de filtres pour la balance sticky
+      if (onFiltersChange) {
+        onFiltersChange(filters);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des opérations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Exposer les méthodes de rafraîchissement au parent via ref
+  useImperativeHandle(ref, () => ({
+    refreshOperations: loadOperations,
+    refreshTags: loadTags,
+    refreshAll: async () => {
+      await loadTags();
+      await loadOperations();
+    }
+  }));
 
   useEffect(() => {
     setFilters(prev => ({ ...prev, compte_id: compteId }));
   }, [compteId]);
 
   useEffect(() => {
-    const loadOperations = async () => {
-      setLoading(true);
-      try {
-        const response = await getOperations(filters);
-        setOperations(response.data);
-
-        // Notifier le parent des changements de filtres pour la balance sticky
-        if (onFiltersChange) {
-          onFiltersChange(filters);
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement des opérations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadOperations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
@@ -280,6 +290,6 @@ function OperationsTable({ compteId, onFiltersChange }) {
       </div>
     </>
   );
-}
+});
 
 export default OperationsTable;

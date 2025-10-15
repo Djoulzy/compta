@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { getTags, createTag, updateTag, deleteTag } from '../services/api';
 
-function TagManager() {
+function TagManager({ onClose, onUpdate }) {
   const [tags, setTags] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [editingTag, setEditingTag] = useState(null);
   const [formData, setFormData] = useState({ cle: '', valeur: '' });
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    const loadTags = async () => {
-      try {
-        const response = await getTags();
-        setTags(response.data);
-      } catch (error) {
-        showMessage('error', 'Erreur lors du chargement des tags');
-      }
-    };
-    
     loadTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTags = async () => {
     try {
+      setLoading(true);
       const response = await getTags();
       setTags(response.data);
     } catch (error) {
       showMessage('error', 'Erreur lors du chargement des tags');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,7 +32,7 @@ function TagManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.cle || !formData.valeur) {
       showMessage('error', 'La clé et la valeur sont requises');
       return;
@@ -51,10 +46,10 @@ function TagManager() {
         await createTag(formData);
         showMessage('success', 'Tag créé avec succès');
       }
-      
-      setFormData({ cle: '', valeur: '' });
-      setEditingTag(null);
-      loadTags();
+
+      resetForm();
+      await loadTags();
+      if (onUpdate) onUpdate();
     } catch (error) {
       showMessage('error', error.response?.data?.error || 'Erreur lors de la sauvegarde');
     }
@@ -73,98 +68,127 @@ function TagManager() {
     try {
       await deleteTag(id);
       showMessage('success', 'Tag supprimé avec succès');
-      loadTags();
+      await loadTags();
+      if (onUpdate) onUpdate();
     } catch (error) {
       showMessage('error', 'Erreur lors de la suppression');
     }
   };
 
-  const handleCancel = () => {
+  const resetForm = () => {
     setEditingTag(null);
     setFormData({ cle: '', valeur: '' });
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   return (
-    <div className="card">
-      <h2>Gestion des Tags</h2>
-      
-      {message.text && (
-        <div className={`alert alert-${message.type}`}>
-          {message.text}
-        </div>
-      )}
-
-      <div className="alert alert-info mb-3">
-        <strong>Information:</strong> Les tags sont automatiquement appliqués aux opérations 
-        lorsque le libellé contient la valeur du tag. Après modification d'un tag, 
-        toutes les opérations seront automatiquement ré-analysées.
-      </div>
-
-      <form onSubmit={handleSubmit} className="mb-3">
-        <div className="form-group">
-          <label>Nom du tag (clé)</label>
-          <input
-            type="text"
-            placeholder="Ex: supermarche, essence, etc."
-            value={formData.cle}
-            onChange={(e) => setFormData({ ...formData, cle: e.target.value })}
-          />
+    <div className="modal-overlay">
+      <div className="modal-content large">
+        <div className="modal-header">
+          <h2>Gestion des tags</h2>
+          <button className="btn-close" onClick={onClose}>×</button>
         </div>
 
-        <div className="form-group">
-          <label>Valeur à rechercher</label>
-          <input
-            type="text"
-            placeholder="Ex: CARREFOUR, TOTAL, etc."
-            value={formData.valeur}
-            onChange={(e) => setFormData({ ...formData, valeur: e.target.value })}
-          />
-          <small style={{ color: '#7f8c8d', display: 'block', marginTop: '0.25rem' }}>
-            Cette valeur sera recherchée dans les libellés des opérations
-          </small>
-        </div>
-
-        <div>
-          <button type="submit" className="btn btn-success">
-            {editingTag ? 'Mettre à jour' : 'Ajouter'}
-          </button>
-          {editingTag && (
-            <button type="button" className="btn btn-secondary" onClick={handleCancel}>
-              Annuler
-            </button>
+        <div className="modal-body">
+          {message.text && (
+            <div className={`alert alert-${message.type}`}>
+              {message.text}
+            </div>
           )}
-        </div>
-      </form>
 
-      <h3 className="mt-3 mb-2">Liste des tags</h3>
-      
-      {tags.length === 0 ? (
-        <p className="text-center">Aucun tag défini. Créez votre premier tag ci-dessus.</p>
-      ) : (
-        <ul className="tag-list">
-          {tags.map(tag => (
-            <li key={tag.id} className="tag-item">
-              <div className="tag-info">
-                <strong>{tag.cle}</strong>: {tag.valeur}
+          <div className="alert alert-info">
+            <strong>Information:</strong> Les tags sont automatiquement appliqués aux opérations
+            lorsque le libellé contient la valeur du tag. Après modification d'un tag,
+            toutes les opérations seront automatiquement ré-analysées.
+          </div>
+
+          <div className="form-section">
+            <h3>{editingTag ? 'Modifier le tag' : 'Ajouter un nouveau tag'}</h3>
+            <form onSubmit={handleSubmit} className="tag-form">
+              <div className="form-group">
+                <label htmlFor="cle">Nom du tag (clé) *</label>
+                <input
+                  type="text"
+                  id="cle"
+                  name="cle"
+                  value={formData.cle}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Ex: supermarche, essence, restaurant"
+                />
               </div>
-              <div className="tag-actions">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleEdit(tag)}
-                >
-                  Modifier
-                </button>
-                <button
-                  className="btn btn-danger"
-                  onClick={() => handleDelete(tag.id)}
-                >
-                  Supprimer
-                </button>
+
+              <div className="form-group">
+                <label htmlFor="valeur">Valeur à rechercher *</label>
+                <input
+                  type="text"
+                  id="valeur"
+                  name="valeur"
+                  value={formData.valeur}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Ex: CARREFOUR, TOTAL, RESTAURANT"
+                />
+                <small className="form-text">
+                  Cette valeur sera recherchée dans les libellés des opérations
+                </small>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
+
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">
+                  {editingTag ? 'Mettre à jour' : 'Créer'}
+                </button>
+                {editingTag && (
+                  <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                    Annuler
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="form-section">
+            <h3>Tags existants</h3>
+            {loading ? (
+              <p>Chargement...</p>
+            ) : tags.length === 0 ? (
+              <p className="text-center">Aucun tag défini. Créez votre premier tag ci-dessus.</p>
+            ) : (
+              <div className="tags-list">
+                {tags.map(tag => (
+                  <div key={tag.id} className="tag-item">
+                    <div className="tag-info">
+                      <h4>{tag.cle}</h4>
+                      <p className="tag-valeur">Recherche: "{tag.valeur}"</p>
+                    </div>
+                    <div className="tag-actions">
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleEdit(tag)}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDelete(tag.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
