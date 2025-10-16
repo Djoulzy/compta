@@ -96,9 +96,12 @@ class Operation
         $query = "SELECT 
                   SUM(CASE WHEN o.debit_credit = 'D' THEN o.montant ELSE 0 END) as total_debits,
                   SUM(CASE WHEN o.debit_credit = 'C' THEN o.montant ELSE 0 END) as total_credits,
-                  SUM(o.montant) as solde,
-                  COUNT(*) as nombre_operations
+                  SUM(o.montant) as solde_operations,
+                  COUNT(*) as nombre_operations,
+                  c.solde_anterieur,
+                  (c.solde_anterieur + COALESCE(SUM(o.montant), 0)) as solde_total
                   FROM " . $this->table . " o
+                  LEFT JOIN comptes c ON o.compte_id = c.id
                   WHERE 1=1";
 
         $params = [];
@@ -148,6 +151,8 @@ class Operation
             $params[':tag'] = json_encode([['cle' => $filters['tag']]]);
         }
 
+        $query .= " GROUP BY c.solde_anterieur";
+
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
         return $stmt->fetch();
@@ -163,18 +168,18 @@ class Operation
         return $stmt->fetch();
     }
 
-    // Créer ou mettre à jour une opération
+    // Créer une nouvelle opération (sans upsert car contrainte d'unicité supprimée)
     public function upsert($data)
+    {
+        return $this->create($data);
+    }
+
+    // Créer une nouvelle opération
+    public function create($data)
     {
         $query = "INSERT INTO " . $this->table . " 
                   (fichier, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags)
                   VALUES (:fichier, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags)
-                  ON CONFLICT (compte_id, date_operation, libelle, montant, cb)
-                  DO UPDATE SET
-                      fichier = EXCLUDED.fichier,
-                      date_valeur = EXCLUDED.date_valeur,
-                      debit_credit = EXCLUDED.debit_credit,
-                      tags = EXCLUDED.tags
                   RETURNING id";
 
         $stmt = $this->db->prepare($query);

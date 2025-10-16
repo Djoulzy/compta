@@ -8,7 +8,8 @@ function CompteManager({ onClose, onUpdate }) {
     const [formData, setFormData] = useState({
         nom: '',
         label: '',
-        description: ''
+        description: '',
+        solde_anterieur: 0
     });
 
     useEffect(() => {
@@ -48,7 +49,8 @@ function CompteManager({ onClose, onUpdate }) {
         setFormData({
             nom: compte.nom,
             label: compte.label || '',
-            description: compte.description || ''
+            description: compte.description || '',
+            solde_anterieur: compte.solde_anterieur || 0
         });
     };
 
@@ -69,7 +71,8 @@ function CompteManager({ onClose, onUpdate }) {
         setFormData({
             nom: '',
             label: '',
-            description: ''
+            description: '',
+            solde_anterieur: 0
         });
     };
 
@@ -130,6 +133,22 @@ function CompteManager({ onClose, onUpdate }) {
                                 />
                             </div>
 
+                            <div className="form-group">
+                                <label htmlFor="solde_anterieur">Solde antérieur (€)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    id="solde_anterieur"
+                                    name="solde_anterieur"
+                                    value={formData.solde_anterieur}
+                                    onChange={handleInputChange}
+                                    placeholder="0.00"
+                                />
+                                <small className="form-text">
+                                    Solde de départ du compte avant les opérations importées
+                                </small>
+                            </div>
+
                             <div className="form-actions">
                                 <button type="submit" className="btn btn-primary">
                                     {editingCompte ? 'Mettre à jour' : 'Créer'}
@@ -159,7 +178,9 @@ function CompteManager({ onClose, onUpdate }) {
                                             )}
                                             <div className="compte-stats">
                                                 <span>Opérations: {compte.nombre_operations || 0}</span>
-                                                <span>Solde: {parseFloat(compte.solde || 0).toFixed(2)} €</span>
+                                                <span>Solde antérieur: {parseFloat(compte.solde_anterieur || 0).toFixed(2)} €</span>
+                                                <span>Solde opérations: {parseFloat(compte.solde_operations || 0).toFixed(2)} €</span>
+                                                <span>Solde total: {parseFloat(compte.solde_total || 0).toFixed(2)} €</span>
                                             </div>
                                         </div>
                                         <div className="compte-actions">

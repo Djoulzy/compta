@@ -17,7 +17,8 @@ class Compte
                   COALESCE(v.nombre_operations, 0) as nombre_operations,
                   COALESCE(v.total_debits, 0) as total_debits,
                   COALESCE(v.total_credits, 0) as total_credits,
-                  COALESCE(v.solde, 0) as solde
+                  COALESCE(v.solde_operations, 0) as solde_operations,
+                  COALESCE(v.solde_total, c.solde_anterieur) as solde_total
                   FROM " . $this->table . " c
                   LEFT JOIN vue_balance_comptes v ON c.id = v.id
                   ORDER BY c.nom";
@@ -34,7 +35,8 @@ class Compte
                   COALESCE(v.nombre_operations, 0) as nombre_operations,
                   COALESCE(v.total_debits, 0) as total_debits,
                   COALESCE(v.total_credits, 0) as total_credits,
-                  COALESCE(v.solde, 0) as solde
+                  COALESCE(v.solde_operations, 0) as solde_operations,
+                  COALESCE(v.solde_total, c.solde_anterieur) as solde_total
                   FROM " . $this->table . " c
                   LEFT JOIN vue_balance_comptes v ON c.id = v.id
                   WHERE c.id = :id";
@@ -56,16 +58,17 @@ class Compte
     }
 
     // Créer un nouveau compte
-    public function create($nom, $description = '', $label = '')
+    public function create($nom, $description = '', $label = '', $solde_anterieur = 0)
     {
-        $query = "INSERT INTO " . $this->table . " (nom, description, label) 
-                  VALUES (:nom, :description, :label) 
+        $query = "INSERT INTO " . $this->table . " (nom, description, label, solde_anterieur) 
+                  VALUES (:nom, :description, :label, :solde_anterieur) 
                   RETURNING id";
 
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':description', $description);
         $stmt->bindParam(':label', $label);
+        $stmt->bindParam(':solde_anterieur', $solde_anterieur);
         $stmt->execute();
 
         $result = $stmt->fetch();
@@ -73,10 +76,10 @@ class Compte
     }
 
     // Mettre à jour un compte
-    public function update($id, $nom, $description = '', $label = '')
+    public function update($id, $nom, $description = '', $label = '', $solde_anterieur = 0)
     {
         $query = "UPDATE " . $this->table . " 
-                  SET nom = :nom, description = :description, label = :label 
+                  SET nom = :nom, description = :description, label = :label, solde_anterieur = :solde_anterieur 
                   WHERE id = :id";
 
         $stmt = $this->db->prepare($query);
@@ -84,6 +87,7 @@ class Compte
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':description', $description);
         $stmt->bindParam(':label', $label);
+        $stmt->bindParam(':solde_anterieur', $solde_anterieur);
         return $stmt->execute();
     }
 

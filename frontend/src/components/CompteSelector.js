@@ -27,7 +27,7 @@ function CompteSelector({ comptes, onSelect, onRefresh, onImport }) {
               {compte.description && <p className="compte-description">{compte.description}</p>}
               <div className="mt-2">
                 <p><strong>Opérations:</strong> {compte.nombre_operations || 0}</p>
-                <p><strong>Solde:</strong> {parseFloat(compte.solde || 0).toFixed(2)} €</p>
+                <p><strong>Solde:</strong> {parseFloat(compte.solde_total || 0).toFixed(2)} €</p>
               </div>
             </div>
           ))}

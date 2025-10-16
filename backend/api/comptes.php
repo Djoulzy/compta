@@ -50,7 +50,8 @@ try {
                 break;
             }
 
-            $id = $compteModel->create($data['nom'], $data['description'] ?? '', $data['label'] ?? '');
+            $solde_anterieur = isset($data['solde_anterieur']) ? floatval($data['solde_anterieur']) : 0;
+            $id = $compteModel->create($data['nom'], $data['description'] ?? '', $data['label'] ?? '', $solde_anterieur);
             $compte = $compteModel->getById($id);
             http_response_code(201);
             echo json_encode($compte);
@@ -72,7 +73,7 @@ try {
                 break;
             }
 
-            $success = $compteModel->update($uri[3], $data['nom'], $data['description'] ?? '', $data['label'] ?? '');
+            $success = $compteModel->update($uri[3], $data['nom'], $data['description'] ?? '', $data['label'] ?? '', floatval($data['solde_anterieur'] ?? 0));
             if ($success) {
                 $compte = $compteModel->getById($uri[3]);
                 echo json_encode($compte);

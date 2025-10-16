@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS comptes (
     nom VARCHAR(255) NOT NULL UNIQUE,
     label VARCHAR(255),
     description TEXT,
+    solde_anterieur REAL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -34,14 +35,12 @@ CREATE TABLE IF NOT EXISTS operations (
     date_operation DATE NOT NULL,
     date_valeur DATE,
     libelle TEXT NOT NULL,
-    montant REAL NOT NULL,
+    montant NUMERIC(12, 2) NOT NULL,
     debit_credit CHAR(1) CHECK (debit_credit IN ('D', 'C')),
     cb BOOLEAN DEFAULT FALSE,
     tags JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Contrainte d'unicité sur compte/date opération/libellé/montant/cb
-    UNIQUE (compte_id, date_operation, libelle, montant, cb)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index pour améliorer les performances
@@ -77,13 +76,15 @@ CREATE OR REPLACE VIEW vue_balance_comptes AS
 SELECT 
     c.id,
     c.nom,
+    c.solde_anterieur,
     COUNT(o.id) as nombre_operations,
     SUM(CASE WHEN o.debit_credit = 'D' THEN ABS(o.montant) ELSE 0 END) as total_debits,
     SUM(CASE WHEN o.debit_credit = 'C' THEN ABS(o.montant) ELSE 0 END) as total_credits,
-    SUM(o.montant) as solde
+    SUM(o.montant) as solde_operations,
+    (c.solde_anterieur + COALESCE(SUM(o.montant), 0)) as solde_total
 FROM comptes c
 LEFT JOIN operations o ON c.id = o.compte_id
-GROUP BY c.id, c.nom;
+GROUP BY c.id, c.nom, c.solde_anterieur;
 
 -- Insertion de données de test (optionnel)
 -- INSERT INTO comptes (nom, description) VALUES ('Compte courant', 'Compte principal');
