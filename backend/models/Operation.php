@@ -169,13 +169,11 @@ class Operation
         $query = "INSERT INTO " . $this->table . " 
                   (fichier, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags)
                   VALUES (:fichier, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags)
-                  ON CONFLICT (compte_id, date_operation, libelle)
+                  ON CONFLICT (compte_id, date_operation, libelle, montant, cb)
                   DO UPDATE SET
                       fichier = EXCLUDED.fichier,
                       date_valeur = EXCLUDED.date_valeur,
-                      montant = EXCLUDED.montant,
                       debit_credit = EXCLUDED.debit_credit,
-                      cb = EXCLUDED.cb,
                       tags = EXCLUDED.tags
                   RETURNING id";
 

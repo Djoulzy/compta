@@ -34,14 +34,14 @@ CREATE TABLE IF NOT EXISTS operations (
     date_operation DATE NOT NULL,
     date_valeur DATE,
     libelle TEXT NOT NULL,
-    montant DECIMAL(12, 2) NOT NULL,
+    montant REAL NOT NULL,
     debit_credit CHAR(1) CHECK (debit_credit IN ('D', 'C')),
     cb BOOLEAN DEFAULT FALSE,
     tags JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Contrainte d'unicité sur compte/date opération/libellé
-    UNIQUE (compte_id, date_operation, libelle)
+    -- Contrainte d'unicité sur compte/date opération/libellé/montant/cb
+    UNIQUE (compte_id, date_operation, libelle, montant, cb)
 );
 
 -- Index pour améliorer les performances
