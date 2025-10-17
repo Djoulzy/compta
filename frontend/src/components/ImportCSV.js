@@ -18,7 +18,7 @@ function ImportCSV({ onComplete }) {
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    
+
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && droppedFile.name.endsWith('.csv')) {
       setFile(droppedFile);
@@ -51,14 +51,6 @@ function ImportCSV({ onComplete }) {
       const response = await importCSV(formData);
       setResult(response.data);
       setFile(null);
-      
-      if (response.data.success) {
-        setTimeout(() => {
-          if (onComplete) {
-            onComplete();
-          }
-        }, 2000);
-      }
     } catch (error) {
       setResult({
         success: false,
@@ -69,10 +61,16 @@ function ImportCSV({ onComplete }) {
     }
   };
 
+  const handleBackToHome = () => {
+    if (onComplete) {
+      onComplete();
+    }
+  };
+
   return (
     <div className="card">
       <h2>Importer un fichier CSV</h2>
-      
+
       <div className="alert alert-info mb-3">
         <strong>Format attendu:</strong><br />
         Fichier, Compte, Date opération, Date valeur, Libellé, Montant, Débit/Crédit, CB
@@ -103,7 +101,7 @@ function ImportCSV({ onComplete }) {
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />
-        
+
         {file ? (
           <div>
             <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>📄 {file.name}</p>
@@ -145,7 +143,7 @@ function ImportCSV({ onComplete }) {
               <h3 style={{ marginBottom: '0.5rem' }}>✓ Import réussi !</h3>
               <p><strong>Total de lignes traitées:</strong> {result.stats.total}</p>
               <p><strong>Opérations importées:</strong> {result.stats.inserted}</p>
-              
+
               {result.stats.nouveaux_comptes.length > 0 && (
                 <>
                   <p style={{ marginTop: '0.5rem' }}>
@@ -158,7 +156,7 @@ function ImportCSV({ onComplete }) {
                   </ul>
                 </>
               )}
-              
+
               {result.stats.errors.length > 0 && (
                 <>
                   <p style={{ marginTop: '0.5rem', color: '#e67e22' }}>
@@ -174,15 +172,28 @@ function ImportCSV({ onComplete }) {
                   </ul>
                 </>
               )}
-              
-              <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>
-                Redirection vers la page des opérations...
-              </p>
+
+              <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleBackToHome}
+                >
+                  OK - Retour aux opérations
+                </button>
+              </div>
             </>
           ) : (
             <>
               <h3 style={{ marginBottom: '0.5rem' }}>✗ Erreur lors de l'import</h3>
               <p>{result.error}</p>
+              <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleBackToHome}
+                >
+                  OK - Retour aux opérations
+                </button>
+              </div>
             </>
           )}
         </div>

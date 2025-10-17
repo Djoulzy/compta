@@ -178,12 +178,13 @@ class Operation
     public function create($data)
     {
         $query = "INSERT INTO " . $this->table . " 
-                  (fichier, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags)
-                  VALUES (:fichier, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags)
+                  (fichier, import_id, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags)
+                  VALUES (:fichier, :import_id, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags)
                   RETURNING id";
 
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':fichier', $data['fichier']);
+        $stmt->bindParam(':import_id', $data['import_id']);
         $stmt->bindParam(':compte_id', $data['compte_id']);
         $stmt->bindParam(':date_operation', $data['date_operation']);
         $stmt->bindParam(':date_valeur', $data['date_valeur']);

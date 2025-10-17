@@ -30,13 +30,19 @@ export const createTag = (data) => api.post('/tags.php', data);
 export const updateTag = (id, data) => api.put(`/tags.php/${id}`, data);
 export const deleteTag = (id) => api.delete(`/tags.php/${id}`);
 
-// Import
+// Import/Upload
 export const importCSV = (formData) => {
-  return axios.post(`${API_BASE_URL}/import.php`, formData, {
+  return axios.post(`${API_BASE_URL}/upload.php`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
 };
+
+// Gestion des imports
+export const getImports = () => api.get('/imports.php');
+export const getImport = (id) => api.get(`/imports.php/${id}`);
+export const getImportOperations = (id) => api.get(`/imports.php/operations/${id}`);
+export const deleteImport = (id) => api.delete(`/imports.php/${id}`);
 
 export default api;

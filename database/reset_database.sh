@@ -58,15 +58,20 @@ fi
 
 echo -e "${YELLOW}🗑️  Suppression de toutes les tables...${NC}"
 
-# Supprimer toutes les tables et séquences
+# Supprimer toutes les tables, vues et séquences
 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" <<EOF
+-- Supprimer les vues
+DROP VIEW IF EXISTS vue_stats_imports CASCADE;
+
 -- Supprimer les tables dans l'ordre inverse des dépendances
 DROP TABLE IF EXISTS operations CASCADE;
+DROP TABLE IF EXISTS imports CASCADE;
 DROP TABLE IF EXISTS tags CASCADE;
 DROP TABLE IF EXISTS comptes CASCADE;
 
 -- Supprimer les séquences
 DROP SEQUENCE IF EXISTS operations_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS imports_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS tags_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS comptes_id_seq CASCADE;
 EOF
@@ -84,9 +89,21 @@ echo -e "${YELLOW}🔨 Recréation du schéma...${NC}"
 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f schema.sql
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Schéma recréé avec succès${NC}"
+    echo -e "${GREEN}✅ Schéma de base recréé avec succès${NC}"
 else
     echo -e "${RED}❌ Erreur lors de la recréation du schéma${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}🔧 Application des migrations...${NC}"
+
+# Appliquer la vue des statistiques d'imports
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f migration_add_vue_stats_imports.sql
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ Migrations appliquées avec succès${NC}"
+else
+    echo -e "${RED}❌ Erreur lors de l'application des migrations${NC}"
     exit 1
 fi
 
@@ -109,6 +126,7 @@ echo ""
 echo -e "${BLUE}📊 État de la base :${NC}"
 
 # Vérifier l'état des tables
+echo -e "${BLUE}Tables créées :${NC}"
 PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" <<EOF
 SELECT 
     schemaname,
@@ -120,6 +138,21 @@ ORDER BY tablename;
 EOF
 
 echo ""
+echo -e "${BLUE}Vues créées :${NC}"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" <<EOF
+SELECT 
+    schemaname,
+    viewname
+FROM pg_views
+WHERE schemaname = 'public'
+ORDER BY viewname;
+EOF
+
+echo ""
 echo -e "${BLUE}💡 La base de données est maintenant vide et prête à recevoir de nouvelles données.${NC}"
-echo -e "${BLUE}   Vous pouvez importer un fichier CSV depuis l'interface web.${NC}"
+echo -e "${BLUE}   Fonctionnalités disponibles :${NC}"
+echo -e "${BLUE}   • Import de fichiers CSV via /api/upload${NC}"
+echo -e "${BLUE}   • Gestion des imports via /api/imports${NC}"
+echo -e "${BLUE}   • Prévention automatique des doublons${NC}"
+echo -e "${BLUE}   • Statistiques détaillées par import${NC}"
 echo ""

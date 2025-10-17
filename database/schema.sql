@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS comptes (
     nom VARCHAR(255) NOT NULL UNIQUE,
     label VARCHAR(255),
     description TEXT,
-    solde_anterieur REAL DEFAULT 0,
+    solde_anterieur NUMERIC(12,2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -27,15 +27,30 @@ CREATE TABLE IF NOT EXISTS tags (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table des imports
+CREATE TABLE IF NOT EXISTS imports (
+    id SERIAL PRIMARY KEY,
+    nom_fichier VARCHAR(255) NOT NULL,
+    nom_fichier_original VARCHAR(255) NOT NULL,
+    taille_fichier INTEGER,
+    hash_fichier VARCHAR(64) UNIQUE,
+    nombre_operations INTEGER DEFAULT 0,
+    nombre_erreurs INTEGER DEFAULT 0,
+    statut VARCHAR(20) DEFAULT 'en_cours' CHECK (statut IN ('en_cours', 'termine', 'erreur')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Table des opérations bancaires
 CREATE TABLE IF NOT EXISTS operations (
     id SERIAL PRIMARY KEY,
     fichier VARCHAR(255),
+    import_id INTEGER REFERENCES imports(id) ON DELETE CASCADE,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
     date_operation DATE NOT NULL,
     date_valeur DATE,
     libelle TEXT NOT NULL,
-    montant NUMERIC(12, 2) NOT NULL,
+    montant NUMERIC(12,2) NOT NULL,
     debit_credit CHAR(1) CHECK (debit_credit IN ('D', 'C')),
     cb BOOLEAN DEFAULT FALSE,
     tags JSONB DEFAULT '[]'::jsonb,
@@ -45,12 +60,18 @@ CREATE TABLE IF NOT EXISTS operations (
 
 -- Index pour améliorer les performances
 CREATE INDEX IF NOT EXISTS idx_operations_compte_id ON operations(compte_id);
+CREATE INDEX IF NOT EXISTS idx_operations_import_id ON operations(import_id);
 CREATE INDEX IF NOT EXISTS idx_operations_date_operation ON operations(date_operation);
 CREATE INDEX IF NOT EXISTS idx_operations_date_valeur ON operations(date_valeur);
 CREATE INDEX IF NOT EXISTS idx_operations_debit_credit ON operations(debit_credit);
 CREATE INDEX IF NOT EXISTS idx_operations_cb ON operations(cb);
 CREATE INDEX IF NOT EXISTS idx_operations_tags ON operations USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_operations_libelle ON operations USING GIN(to_tsvector('french', libelle));
+
+-- Index pour la table imports
+CREATE INDEX IF NOT EXISTS idx_imports_hash ON imports(hash_fichier);
+CREATE INDEX IF NOT EXISTS idx_imports_statut ON imports(statut);
+CREATE INDEX IF NOT EXISTS idx_imports_created_at ON imports(created_at);
 
 -- Fonction pour mettre à jour automatiquement updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -66,6 +87,9 @@ CREATE TRIGGER update_comptes_updated_at BEFORE UPDATE ON comptes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_tags_updated_at BEFORE UPDATE ON tags
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_imports_updated_at BEFORE UPDATE ON imports
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_operations_updated_at BEFORE UPDATE ON operations

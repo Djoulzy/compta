@@ -13,6 +13,7 @@ require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../models/Compte.php';
 require_once __DIR__ . '/../models/Operation.php';
 require_once __DIR__ . '/../models/Tag.php';
+require_once __DIR__ . '/../models/Import.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -29,7 +30,7 @@ try {
     }
 
     $file = $_FILES['file'];
-    
+
     // Vérifier les erreurs d'upload
     if ($file['error'] !== UPLOAD_ERR_OK) {
         http_response_code(400);
@@ -45,9 +46,31 @@ try {
         exit();
     }
 
-    // Lire le fichier CSV
-    $csvData = array_map('str_getcsv', file($file['tmp_name']));
-    
+    // Vérifier les doublons d'import
+    $importModel = new Import();
+    $fileHash = Import::generateFileHash($file['tmp_name'], $file['name']);
+
+    $existingImport = $importModel->checkDuplicate($fileHash);
+    if ($existingImport) {
+        http_response_code(409);
+        echo json_encode([
+            'error' => 'Ce fichier a déjà été importé',
+            'import_existant' => [
+                'id' => $existingImport['id'],
+                'nom_fichier' => $existingImport['nom_fichier_original'],
+                'date_import' => $existingImport['created_at'],
+                'nombre_operations' => $existingImport['nombre_operations']
+            ]
+        ]);
+        exit();
+    }
+
+    // Sauvegarder le fichier uploadé
+    $savedFile = $importModel->saveUploadedFile($file);
+
+    // Lire le fichier CSV depuis son nouvel emplacement
+    $csvData = array_map('str_getcsv', file($savedFile['chemin_complet']));
+
     if (empty($csvData)) {
         http_response_code(400);
         echo json_encode(['error' => 'Le fichier CSV est vide']);
@@ -57,9 +80,9 @@ try {
     // Vérifier l'en-tête
     $header = array_shift($csvData);
     $expectedHeader = ['Fichier', 'Compte', 'Date opération', 'Date valeur', 'Libellé', 'Montant', 'Débit/Crédit', 'CB'];
-    
+
     // Nettoyer les en-têtes (enlever les BOM et espaces)
-    $header = array_map(function($h) {
+    $header = array_map(function ($h) {
         return trim(str_replace("\xEF\xBB\xBF", '', $h));
     }, $header);
 
@@ -67,12 +90,25 @@ try {
     $operationModel = new Operation();
     $tagModel = new Tag();
 
+    // Créer l'enregistrement d'import
+    $importData = [
+        'nom_fichier' => $savedFile['nom_fichier'],
+        'nom_fichier_original' => $file['name'],
+        'taille_fichier' => $savedFile['taille_fichier'],
+        'hash_fichier' => $fileHash,
+        'statut' => 'en_cours'
+    ];
+
+    $importId = $importModel->create($importData);
+
     $stats = [
+        'import_id' => $importId,
         'total' => 0,
         'inserted' => 0,
         'updated' => 0,
         'errors' => [],
-        'nouveaux_comptes' => []
+        'nouveaux_comptes' => [],
+        'comptes_concernés' => []
     ];
 
     foreach ($csvData as $lineNumber => $row) {
@@ -125,7 +161,7 @@ try {
             } elseif (strtolower($debitCredit) === 'crédit' || strtolower($debitCredit) === 'credit') {
                 $debitCredit = 'C';
             }
-            
+
             if ($debitCredit !== 'D' && $debitCredit !== 'C') {
                 $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Type de transaction invalide (attendu: D/C ou Débit/Crédit)";
                 continue;
@@ -140,12 +176,18 @@ try {
                 $compteId = $compte['id'];
             }
 
+            // Suivre les comptes concernés par cet import
+            if (!in_array($nomCompte, $stats['comptes_concernés'])) {
+                $stats['comptes_concernés'][] = $nomCompte;
+            }
+
             // Appliquer les tags
             $tags = $tagModel->applyTagsToLibelle($libelle);
 
-            // Insérer ou mettre à jour l'opération
+            // Insérer l'opération avec référence à l'import
             $operationData = [
                 'fichier' => $fichier,
+                'import_id' => $importId,
                 'compte_id' => $compteId,
                 'date_operation' => $dateOperation,
                 'date_valeur' => $dateValeur,
@@ -156,20 +198,47 @@ try {
                 'tags' => json_encode($tags)
             ];
 
-            $operationModel->upsert($operationData);
+            $operationModel->create($operationData);
             $stats['inserted']++;
-
         } catch (Exception $e) {
             $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": " . $e->getMessage();
         }
     }
 
+    // Mettre à jour les statistiques de l'import
+    $statut = count($stats['errors']) > 0 ? 'termine' : 'termine';
+    if ($stats['inserted'] === 0 && count($stats['errors']) > 0) {
+        $statut = 'erreur';
+    }
+
+    $importModel->updateStats($importId, $stats['inserted'], count($stats['errors']), $statut);
+
     echo json_encode([
         'success' => true,
         'stats' => $stats
     ]);
-
 } catch (Exception $e) {
+    // En cas d'erreur, marquer l'import comme en erreur s'il existe
+    if (isset($importId)) {
+        try {
+            $importModel->markAsError($importId, 1);
+        } catch (Exception $e2) {
+            // Ignore les erreurs de mise à jour du statut
+        }
+    }
+
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode([
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString()
+    ]);
+} catch (Error $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Erreur fatale: ' . $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
 }

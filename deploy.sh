@@ -62,7 +62,7 @@ echo -e "${GREEN}✅ Fichiers copiés${NC}"
 
 # 3. Définir les bonnes permissions
 echo -e "\n${YELLOW}🔐 Configuration des permissions...${NC}"
-sudo chown -R www-data:www-data /var/www/compta
+sudo chown -R jules:jules /var/www/compta
 sudo chmod -R 755 /var/www/compta
 sudo chmod -R 775 /var/www/compta/backend/uploads
 
