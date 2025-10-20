@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import Select from 'react-select';
 import { getOperations, getTags } from '../services/api';
 
 const OperationsTable = forwardRef(({ compteId, onFiltersChange }, ref) => {
@@ -8,7 +9,7 @@ const OperationsTable = forwardRef(({ compteId, onFiltersChange }, ref) => {
     compte_id: compteId,
     debit_credit: '',
     cb: '',
-    tag: '',
+    tag: [],
     mois: '',
     annee: '',
     recherche: '',
@@ -117,89 +118,107 @@ const OperationsTable = forwardRef(({ compteId, onFiltersChange }, ref) => {
         <h3>Filtres</h3>
 
         <div className="filters-compact">
-          <div className="form-group-compact">
-            <input
-              type="text"
-              placeholder="Rechercher dans les libellés..."
-              value={filters.recherche}
-              onChange={(e) => handleFilterChange('recherche', e.target.value)}
-            />
+          {/* Première ligne : Recherche et Tags (plus large) */}
+          <div className="filters-row-main">
+            <div className="form-group-search">
+              <input
+                type="text"
+                placeholder="Rechercher dans les libellés..."
+                value={filters.recherche}
+                onChange={(e) => handleFilterChange('recherche', e.target.value)}
+              />
+            </div>
+            <div className="form-group-tags">
+              <Select
+                isMulti
+                value={filters.tag.map(tagValue => ({
+                  value: tagValue,
+                  label: tagValue
+                }))}
+                onChange={(selectedOptions) => {
+                  const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+                  handleFilterChange('tag', selectedValues);
+                }}
+                options={tags.map(tag => ({
+                  value: tag.cle,
+                  label: tag.cle
+                }))}
+                placeholder="Sélectionner des tags..."
+                className="react-select-container"
+                classNamePrefix="react-select"
+                isClearable
+                isSearchable
+                noOptionsMessage={() => "Aucun tag disponible"}
+                loadingMessage={() => "Chargement..."}
+              />
+            </div>
           </div>
 
-          <div className="form-group-compact">
-            <select
-              value={filters.debit_credit}
-              onChange={(e) => handleFilterChange('debit_credit', e.target.value)}
+          {/* Deuxième ligne : Autres filtres */}
+          <div className="filters-row-secondary">
+            <div className="form-group-compact">
+              <select
+                value={filters.debit_credit}
+                onChange={(e) => handleFilterChange('debit_credit', e.target.value)}
+              >
+                <option value="">Débit/Crédit</option>
+                <option value="D">Débit</option>
+                <option value="C">Crédit</option>
+              </select>
+            </div>
+
+            <div className="form-group-compact">
+              <select
+                value={filters.cb}
+                onChange={(e) => handleFilterChange('cb', e.target.value)}
+              >
+                <option value="">Carte bancaire</option>
+                <option value="true">Oui</option>
+                <option value="false">Non</option>
+              </select>
+            </div>
+
+            <div className="form-group-compact">
+              <select
+                value={filters.mois}
+                onChange={(e) => handleFilterChange('mois', e.target.value)}
+              >
+                <option value="">Tous les mois</option>
+                {months.map(month => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group-compact">
+              <select
+                value={filters.annee}
+                onChange={(e) => handleFilterChange('annee', e.target.value)}
+              >
+                <option value="">Toutes les années</option>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              className="btn btn-secondary btn-compact"
+              onClick={() => setFilters({
+                compte_id: compteId,
+                debit_credit: '',
+                cb: '',
+                tag: [],
+                mois: '',
+                annee: '',
+                recherche: '',
+                tri: 'date_operation_desc'
+              })}
+              title="Réinitialiser les filtres"
             >
-              <option value="">Débit/Crédit</option>
-              <option value="D">Débit</option>
-              <option value="C">Crédit</option>
-            </select>
+              ⟲
+            </button>
           </div>
-
-          <div className="form-group-compact">
-            <select
-              value={filters.cb}
-              onChange={(e) => handleFilterChange('cb', e.target.value)}
-            >
-              <option value="">Carte bancaire</option>
-              <option value="true">Oui</option>
-              <option value="false">Non</option>
-            </select>
-          </div>
-
-          <div className="form-group-compact">
-            <select
-              value={filters.tag}
-              onChange={(e) => handleFilterChange('tag', e.target.value)}
-            >
-              <option value="">Tous les tags</option>
-              {tags.map(tag => (
-                <option key={tag.id} value={tag.cle}>{tag.cle}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group-compact">
-            <select
-              value={filters.mois}
-              onChange={(e) => handleFilterChange('mois', e.target.value)}
-            >
-              <option value="">Tous les mois</option>
-              {months.map(month => (
-                <option key={month.value} value={month.value}>{month.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group-compact">
-            <select
-              value={filters.annee}
-              onChange={(e) => handleFilterChange('annee', e.target.value)}
-            >
-              <option value="">Toutes les années</option>
-              {years.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            className="btn btn-secondary btn-compact"
-            onClick={() => setFilters({
-              compte_id: compteId,
-              debit_credit: '',
-              cb: '',
-              tag: '',
-              mois: '',
-              annee: '',
-              recherche: '',
-              tri: 'date_operation_desc'
-            })}
-            title="Réinitialiser les filtres"
-          >
-            ⟲
-          </button>
         </div>
       </div>
 

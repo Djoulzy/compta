@@ -61,8 +61,22 @@ class Operation
         }
 
         if (!empty($filters['tag'])) {
-            $query .= " AND o.tags @> :tag::jsonb";
-            $params[':tag'] = json_encode([['cle' => $filters['tag']]]);
+            // Gérer les tags multiples (array) ou un seul tag (string)
+            $tagFilter = $filters['tag'];
+
+            if (is_array($tagFilter) && count($tagFilter) > 0) {
+                // Plusieurs tags sélectionnés - OR logique
+                $tagConditions = [];
+                foreach ($tagFilter as $index => $tag) {
+                    $tagConditions[] = "o.tags @> :tag{$index}::jsonb";
+                    $params[":tag{$index}"] = json_encode([['cle' => $tag]]);
+                }
+                $query .= " AND (" . implode(" OR ", $tagConditions) . ")";
+            } elseif (is_string($tagFilter)) {
+                // Un seul tag (compatibilité)
+                $query .= " AND o.tags @> :tag::jsonb";
+                $params[':tag'] = json_encode([['cle' => $tagFilter]]);
+            }
         }
 
         // Tri
@@ -99,7 +113,33 @@ class Operation
     // Calculer la balance pour un ensemble d'opérations
     public function getBalance($filters = [])
     {
-        // D'abord récupérer le solde antérieur du compte spécifique
+        // Déterminer si des filtres sont appliqués (autres que compte_id et tri)
+        $hasFilters = false;
+        $filterKeys = array_keys($filters);
+        $excludedKeys = ['compte_id', 'tri']; // Exclure compte_id et tri de la détection de filtres
+
+        foreach ($filterKeys as $key) {
+            if (!in_array($key, $excludedKeys)) {
+                $value = $filters[$key];
+
+                // Vérifier si la valeur est considérée comme un filtre actif
+                if (is_array($value)) {
+                    // Pour les tableaux (comme tags), vérifier s'il n'est pas vide
+                    if (!empty($value)) {
+                        $hasFilters = true;
+                        break;
+                    }
+                } else {
+                    // Pour les chaînes, vérifier qu'elle n'est pas vide ou juste des espaces
+                    if (!empty($value) && trim($value) !== '') {
+                        $hasFilters = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Récupérer le solde antérieur du compte spécifique
         $solde_anterieur = 0;
         if (!empty($filters['compte_id'])) {
             $query_compte = "SELECT solde_anterieur FROM comptes WHERE id = :compte_id";
@@ -108,6 +148,11 @@ class Operation
             $stmt_compte->execute();
             $compte = $stmt_compte->fetch();
             $solde_anterieur = $compte ? floatval($compte['solde_anterieur']) : 0;
+
+            // Si des filtres sont appliqués, ne pas inclure le solde antérieur
+            if ($hasFilters) {
+                $solde_anterieur = 0;
+            }
         }
 
         $query = "SELECT 
@@ -163,15 +208,36 @@ class Operation
         }
 
         if (!empty($filters['tag'])) {
-            $query .= " AND o.tags @> :tag::jsonb";
-            $params[':tag'] = json_encode([['cle' => $filters['tag']]]);
+            // Gérer les tags multiples (array) ou un seul tag (string)
+            $tagFilter = $filters['tag'];
+
+            if (is_array($tagFilter) && count($tagFilter) > 0) {
+                // Plusieurs tags sélectionnés - OR logique
+                $tagConditions = [];
+                foreach ($tagFilter as $index => $tag) {
+                    $tagConditions[] = "o.tags @> :tag{$index}::jsonb";
+                    $params[":tag{$index}"] = json_encode([['cle' => $tag]]);
+                }
+                $query .= " AND (" . implode(" OR ", $tagConditions) . ")";
+            } elseif (is_string($tagFilter)) {
+                // Un seul tag (compatibilité)
+                $query .= " AND o.tags @> :tag::jsonb";
+                $params[':tag'] = json_encode([['cle' => $tagFilter]]);
+            }
         }
 
         // Le solde_anterieur est déjà intégré directement dans la requête
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetch();
+        $result = $stmt->fetch();
+
+        // Ajouter l'information sur l'inclusion du solde antérieur
+        if ($result) {
+            $result['solde_anterieur_inclus'] = !$hasFilters;
+        }
+
+        return $result;
     }
 
     // Récupérer une opération par ID

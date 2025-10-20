@@ -38,6 +38,12 @@ function BalanceSticky({ compteId, filters = {} }) {
                     <h3>Balance Comptable</h3>
                 </div>
                 <div className="balance-sticky-items">
+                    {balance.solde_anterieur_inclus && (
+                        <div className="balance-sticky-item anterieur">
+                            <span className="label">Solde antérieur</span>
+                            <span className="value">{parseFloat(balance.solde_anterieur || 0).toFixed(2)} €</span>
+                        </div>
+                    )}
                     <div className="balance-sticky-item debit">
                         <span className="label">Débits</span>
                         <span className="value">{parseFloat(balance.total_debits || 0).toFixed(2)} €</span>

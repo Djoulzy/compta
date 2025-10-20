@@ -35,10 +35,12 @@ function Balance({ compteId, filters = {} }) {
     <div className="card">
       <h2>Balance Comptable</h2>
       <div className="balance">
-        <div className="balance-item">
-          <h3>Solde antérieur</h3>
-          <p>{parseFloat(balance.solde_anterieur || 0).toFixed(2)} €</p>
-        </div>
+        {balance.solde_anterieur_inclus && (
+          <div className="balance-item">
+            <h3>Solde antérieur</h3>
+            <p>{parseFloat(balance.solde_anterieur || 0).toFixed(2)} €</p>
+          </div>
+        )}
         <div className="balance-item debit">
           <h3>Total Débits</h3>
           <p>{parseFloat(balance.total_debits || 0).toFixed(2)} €</p>
