@@ -238,7 +238,28 @@ const OperationsTable = forwardRef(({ compteId, onFiltersChange }, ref) => {
                   <tr key={operation.id}>
                     <td>{formatDate(operation.date_operation)}</td>
                     <td>{formatDate(operation.date_valeur)}</td>
-                    <td>{operation.libelle}</td>
+                    <td>
+                      <div>
+                        <div style={{ fontWeight: '500', marginBottom: '2px' }}>
+                          {operation.libelle}
+                        </div>
+                        {operation.informations_complementaires && (
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: '#666',
+                            lineHeight: '1.3',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }} title={operation.informations_complementaires}>
+                            {operation.informations_complementaires.length > 90
+                              ? operation.informations_complementaires.substring(0, 90)
+                              : operation.informations_complementaires}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ textAlign: 'right' }}>
                       <span style={{
                         color: operation.debit_credit === 'D' ? '#e74c3c' : '#27ae60',

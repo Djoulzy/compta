@@ -16,7 +16,17 @@ class Import
         $query = "SELECT * FROM vue_stats_imports ORDER BY created_at DESC";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $imports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Normaliser les noms de champs pour le frontend
+        foreach ($imports as &$import) {
+            $import['filename'] = $import['nom_fichier_original'];
+            $import['file_hash'] = $import['hash_fichier'];
+            $import['total_operations'] = $import['nombre_operations'];
+            $import['total_comptes'] = $import['nombre_comptes_concernes'];
+        }
+
+        return $imports;
     }
 
     // Récupérer un import par ID
@@ -26,7 +36,7 @@ class Import
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
-        return $stmt->fetch();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     // Vérifier si un fichier a déjà été importé (par hash)
@@ -129,7 +139,7 @@ class Import
     // Récupérer les opérations d'un import
     public function getOperations($importId)
     {
-        $query = "SELECT o.*, c.nom as compte_nom 
+        $query = "SELECT o.*, c.nom as compte_numero 
                   FROM operations o
                   JOIN comptes c ON o.compte_id = c.id
                   WHERE o.import_id = :import_id
@@ -139,5 +149,24 @@ class Import
         $stmt->bindParam(':import_id', $importId);
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+
+    // Récupérer un import avec ses opérations
+    public function getWithOperations($id)
+    {
+        // Récupérer les info de l'import
+        $import = $this->getById($id);
+        if (!$import) {
+            return null;
+        }
+
+        // Récupérer les opérations
+        $import['operations'] = $this->getOperations($id);
+
+        // Normaliser les noms de champs pour le frontend
+        $import['filename'] = $import['nom_fichier_original'];
+        $import['file_hash'] = $import['hash_fichier'];
+
+        return $import;
     }
 }

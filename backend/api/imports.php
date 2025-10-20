@@ -17,10 +17,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
 
-// API endpoint: /api/imports.php
-// Debug temporaire
-file_put_contents('/tmp/debug_imports.log', 'URI: ' . $_SERVER['REQUEST_URI'] . "\n" . 'Parsed URI: ' . print_r($uri, true) . "\nMethod: " . $method . "\n", FILE_APPEND);
-
 try {
     switch ($method) {
         case 'GET':
@@ -30,8 +26,8 @@ try {
                     $operations = $importModel->getOperations($uri[4]);
                     echo json_encode($operations);
                 } else {
-                    // GET /api/imports/1 - Récupérer un import spécifique
-                    $import = $importModel->getById($uri[3]);
+                    // GET /api/imports/1 - Récupérer un import spécifique avec ses opérations
+                    $import = $importModel->getWithOperations($uri[3]);
                     if ($import) {
                         echo json_encode($import);
                     } else {

@@ -10,6 +10,7 @@
 - **migration_real_to_numeric.sql** : Script SQL de migration (ACTUEL)
 - **migrate_unique_constraint.sh** : Migration de la contrainte d'unicité (OBSOLÈTE - supprime la contrainte)
 - **migration_update_unique_constraint.sql** : Script SQL de mise à jour de la contrainte (OBSOLÈTE)
+- **migration_update_reference_constraint.sql** : Modification contrainte référence (reference, compte_id)
 - **cleanup_duplicates.sh** : Nettoyage des doublons dans la table operations
 - **cleanup_duplicates.sql** : Script SQL de nettoyage des doublons
 
@@ -518,4 +519,29 @@ COMMIT
 📌 Cela permet maintenant d'avoir :
    - Plusieurs opérations avec le même libellé et date, mais montants différents
    - Des opérations CB et non-CB avec le même libellé et date
+
+---
+
+## migration_update_reference_constraint.sql
+
+Script de migration pour modifier la contrainte d'unicité sur la colonne `reference`.
+
+### 🎯 Objectif
+Modifier la contrainte d'unicité de la colonne `reference` pour qu'elle s'applique sur la combinaison `(reference, compte_id)` au lieu de `reference` seule.
+
+### 🔄 Changements effectués
+- **Suppression** de la contrainte `operations_reference_unique`
+- **Ajout** de la contrainte `operations_reference_compte_unique` sur `(reference, compte_id)`
+- **Mise à jour** de l'index correspondant
+
+### ✅ Résultat
+- **Autorisé** : Même référence pour des comptes différents
+- **Interdit** : Même référence pour le même compte
+- **Exemple** : La référence "VIR001" peut exister pour le compte A et le compte B, mais pas deux fois pour le compte A
+
+### 🚀 Utilisation
+```bash
+cd /data/www/compta/database
+PGPASSWORD=ptcmba51 psql -h database -U compta_db -d compta_db -f migration_update_reference_constraint.sql
+```
 ```

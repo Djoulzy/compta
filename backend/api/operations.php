@@ -47,19 +47,21 @@ try {
         case 'POST':
             // POST /api/operations - Créer une nouvelle opération
             $data = json_decode(file_get_contents('php://input'), true);
-            
-            if (empty($data['compte_id']) || empty($data['date_operation']) || 
-                empty($data['libelle']) || !isset($data['montant'])) {
+
+            if (
+                empty($data['compte_id']) || empty($data['date_operation']) ||
+                empty($data['libelle']) || !isset($data['montant'])
+            ) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Données requises manquantes']);
                 break;
             }
-            
+
             // Appliquer les tags automatiquement
             $tagModel = new Tag();
-            $tags = $tagModel->applyTagsToLibelle($data['libelle']);
+            $tags = $tagModel->applyTagsToLibelle($data['libelle'], $data['informations_complementaires'] ?? '');
             $data['tags'] = json_encode($tags);
-            
+
             $id = $operationModel->upsert($data);
             $operation = $operationModel->getById($id);
             http_response_code(201);
@@ -70,14 +72,29 @@ try {
             if (!empty($uri[3]) && $uri[3] === 'tags' && !empty($uri[4])) {
                 // PUT /api/operations/tags/1 - Mettre à jour les tags d'une opération
                 $data = json_decode(file_get_contents('php://input'), true);
-                
+
                 if (!isset($data['tags'])) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Tags requis']);
                     break;
                 }
-                
+
                 $success = $operationModel->updateTags($uri[4], $data['tags']);
+                if ($success) {
+                    $operation = $operationModel->getById($uri[4]);
+                    echo json_encode($operation);
+                } else {
+                    http_response_code(404);
+                    echo json_encode(['error' => 'Échec de la mise à jour']);
+                }
+            } elseif (!empty($uri[3]) && $uri[3] === 'infos' && !empty($uri[4])) {
+                // PUT /api/operations/infos/1 - Mettre à jour les informations complémentaires et le type d'opération
+                $data = json_decode(file_get_contents('php://input'), true);
+
+                $informations_complementaires = $data['informations_complementaires'] ?? null;
+                $type_operation = $data['type_operation'] ?? null;
+
+                $success = $operationModel->updateInfosComplementaires($uri[4], $informations_complementaires, $type_operation);
                 if ($success) {
                     $operation = $operationModel->getById($uri[4]);
                     echo json_encode($operation);
@@ -98,7 +115,7 @@ try {
                 echo json_encode(['error' => 'ID de l\'opération requis']);
                 break;
             }
-            
+
             $success = $operationModel->delete($uri[3]);
             if ($success) {
                 echo json_encode(['success' => true]);

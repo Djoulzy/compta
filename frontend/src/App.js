@@ -4,6 +4,7 @@ import CompteSelector from './components/CompteSelector';
 import OperationsTable from './components/OperationsTable';
 import TagManager from './components/TagManager';
 import ImportCSV from './components/ImportCSV';
+import ImportManager from './components/ImportManager';
 import CompteManager from './components/CompteManager';
 import BalanceSticky from './components/BalanceSticky';
 import { getComptes } from './services/api';
@@ -87,6 +88,9 @@ function App() {
               <button onClick={() => setCurrentView('import')} title="Importer un fichier CSV">
                 📥 Import CSV
               </button>
+              <button onClick={() => setCurrentView('imports')} title="Gérer les imports">
+                📋 Gestion Imports
+              </button>
             </nav>
           )}
         </div>
@@ -121,6 +125,10 @@ function App() {
 
             {currentView === 'import' && (
               <ImportCSV onComplete={handleImportComplete} />
+            )}
+
+            {currentView === 'imports' && (
+              <ImportManager />
             )}
           </>
         )}

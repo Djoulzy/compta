@@ -54,8 +54,12 @@ CREATE TABLE IF NOT EXISTS operations (
     debit_credit CHAR(1) CHECK (debit_credit IN ('D', 'C')),
     cb BOOLEAN DEFAULT FALSE,
     tags JSONB DEFAULT '[]'::jsonb,
+    reference VARCHAR(255) NULL,
+    informations_complementaires VARCHAR(500) NULL,
+    type_operation VARCHAR(100) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT operations_reference_compte_unique UNIQUE (reference, compte_id)
 );
 
 -- Index pour améliorer les performances
@@ -67,6 +71,8 @@ CREATE INDEX IF NOT EXISTS idx_operations_debit_credit ON operations(debit_credi
 CREATE INDEX IF NOT EXISTS idx_operations_cb ON operations(cb);
 CREATE INDEX IF NOT EXISTS idx_operations_tags ON operations USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_operations_libelle ON operations USING GIN(to_tsvector('french', libelle));
+CREATE INDEX IF NOT EXISTS idx_operations_reference ON operations (reference) WHERE reference IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_operations_type_operation ON operations(type_operation) WHERE type_operation IS NOT NULL;
 
 -- Index pour la table imports
 CREATE INDEX IF NOT EXISTS idx_imports_hash ON imports(hash_fichier);

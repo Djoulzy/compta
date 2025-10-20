@@ -56,7 +56,7 @@ class Operation
         }
 
         if (!empty($filters['recherche'])) {
-            $query .= " AND o.libelle ILIKE :recherche";
+            $query .= " AND (o.libelle ILIKE :recherche OR o.informations_complementaires ILIKE :recherche)";
             $params[':recherche'] = '%' . $filters['recherche'] . '%';
         }
 
@@ -81,6 +81,12 @@ class Operation
                 case 'date_valeur_desc':
                     $orderBy = "o.date_valeur DESC";
                     break;
+                case 'informations_complementaires_asc':
+                    $orderBy = "o.informations_complementaires ASC NULLS LAST";
+                    break;
+                case 'informations_complementaires_desc':
+                    $orderBy = "o.informations_complementaires DESC NULLS LAST";
+                    break;
             }
         }
         $query .= " ORDER BY " . $orderBy;
@@ -93,15 +99,25 @@ class Operation
     // Calculer la balance pour un ensemble d'opérations
     public function getBalance($filters = [])
     {
+        // D'abord récupérer le solde antérieur du compte spécifique
+        $solde_anterieur = 0;
+        if (!empty($filters['compte_id'])) {
+            $query_compte = "SELECT solde_anterieur FROM comptes WHERE id = :compte_id";
+            $stmt_compte = $this->db->prepare($query_compte);
+            $stmt_compte->bindParam(':compte_id', $filters['compte_id']);
+            $stmt_compte->execute();
+            $compte = $stmt_compte->fetch();
+            $solde_anterieur = $compte ? floatval($compte['solde_anterieur']) : 0;
+        }
+
         $query = "SELECT 
-                  SUM(CASE WHEN o.debit_credit = 'D' THEN o.montant ELSE 0 END) as total_debits,
-                  SUM(CASE WHEN o.debit_credit = 'C' THEN o.montant ELSE 0 END) as total_credits,
-                  SUM(o.montant) as solde_operations,
-                  COUNT(*) as nombre_operations,
-                  c.solde_anterieur,
-                  (c.solde_anterieur + COALESCE(SUM(o.montant), 0)) as solde_total
+                  COALESCE(SUM(CASE WHEN o.debit_credit = 'D' THEN o.montant ELSE 0 END), 0) as total_debits,
+                  COALESCE(SUM(CASE WHEN o.debit_credit = 'C' THEN o.montant ELSE 0 END), 0) as total_credits,
+                  COALESCE(SUM(o.montant), 0) as solde_operations,
+                  COUNT(o.id) as nombre_operations,
+                  $solde_anterieur::NUMERIC as solde_anterieur,
+                  ($solde_anterieur::NUMERIC + COALESCE(SUM(o.montant), 0)) as solde_total
                   FROM " . $this->table . " o
-                  LEFT JOIN comptes c ON o.compte_id = c.id
                   WHERE 1=1";
 
         $params = [];
@@ -142,7 +158,7 @@ class Operation
         }
 
         if (!empty($filters['recherche'])) {
-            $query .= " AND o.libelle ILIKE :recherche";
+            $query .= " AND (o.libelle ILIKE :recherche OR o.informations_complementaires ILIKE :recherche)";
             $params[':recherche'] = '%' . $filters['recherche'] . '%';
         }
 
@@ -151,7 +167,7 @@ class Operation
             $params[':tag'] = json_encode([['cle' => $filters['tag']]]);
         }
 
-        $query .= " GROUP BY c.solde_anterieur";
+        // Le solde_anterieur est déjà intégré directement dans la requête
 
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
@@ -178,8 +194,8 @@ class Operation
     public function create($data)
     {
         $query = "INSERT INTO " . $this->table . " 
-                  (fichier, import_id, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags)
-                  VALUES (:fichier, :import_id, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags)
+                  (fichier, import_id, compte_id, date_operation, date_valeur, libelle, montant, debit_credit, cb, tags, reference, informations_complementaires, type_operation)
+                  VALUES (:fichier, :import_id, :compte_id, :date_operation, :date_valeur, :libelle, :montant, :debit_credit, :cb, :tags, :reference, :informations_complementaires, :type_operation)
                   RETURNING id";
 
         $stmt = $this->db->prepare($query);
@@ -193,6 +209,14 @@ class Operation
         $stmt->bindParam(':debit_credit', $data['debit_credit']);
         $stmt->bindParam(':cb', $data['cb'], PDO::PARAM_BOOL);
         $stmt->bindParam(':tags', $data['tags']);
+
+        $reference = $data['reference'] ?? null;
+        $informations_complementaires = $data['informations_complementaires'] ?? null;
+        $type_operation = $data['type_operation'] ?? null;
+
+        $stmt->bindParam(':reference', $reference);
+        $stmt->bindParam(':informations_complementaires', $informations_complementaires);
+        $stmt->bindParam(':type_operation', $type_operation);
         $stmt->execute();
 
         $result = $stmt->fetch();
@@ -206,6 +230,22 @@ class Operation
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':tags', json_encode($tags));
+        return $stmt->execute();
+    }
+
+    // Mettre à jour les informations complémentaires et le type d'opération
+    public function updateInfosComplementaires($id, $informations_complementaires = null, $type_operation = null)
+    {
+        $query = "UPDATE " . $this->table . " SET 
+                  informations_complementaires = :informations_complementaires,
+                  type_operation = :type_operation,
+                  updated_at = CURRENT_TIMESTAMP
+                  WHERE id = :id";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':informations_complementaires', $informations_complementaires);
+        $stmt->bindParam(':type_operation', $type_operation);
         return $stmt->execute();
     }
 
@@ -225,7 +265,7 @@ class Operation
         $operations = $this->getAll();
 
         foreach ($operations as $operation) {
-            $tags = $tagModel->applyTagsToLibelle($operation['libelle']);
+            $tags = $tagModel->applyTagsToLibelle($operation['libelle'], $operation['informations_complementaires'] ?? '');
             $this->updateTags($operation['id'], $tags);
         }
 

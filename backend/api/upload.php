@@ -15,6 +15,34 @@ require_once __DIR__ . '/../models/Operation.php';
 require_once __DIR__ . '/../models/Tag.php';
 require_once __DIR__ . '/../models/Import.php';
 
+/**
+ * Extraire le numéro de compte et le flag CB du nom de fichier
+ */
+function parseFilenameInfo($filename)
+{
+    $result = [
+        'compte_numero' => null,
+        'cb' => false
+    ];
+
+    // Si le nom contient "carte", c'est une carte bancaire (insensible à la casse)
+    if (stripos($filename, 'carte') !== false) {
+        $result['cb'] = true;
+        // Pour les cartes, format: carte_6106_04003501208_20082023_20102025.csv
+        // Le numéro de compte est après le deuxième underscore (insensible à la casse)
+        if (preg_match('/carte_\d+_(\d+)_/i', $filename, $matches)) {
+            $result['compte_numero'] = $matches[1];
+        }
+    } else {
+        // Pour les comptes normaux, le numéro est au début du fichier
+        if (preg_match('/^(\d+)/', $filename, $matches)) {
+            $result['compte_numero'] = $matches[1];
+        }
+    }
+
+    return $result;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Méthode non autorisée']);
@@ -68,8 +96,14 @@ try {
     // Sauvegarder le fichier uploadé
     $savedFile = $importModel->saveUploadedFile($file);
 
-    // Lire le fichier CSV depuis son nouvel emplacement
-    $csvData = array_map('str_getcsv', file($savedFile['chemin_complet']));
+    // Lire le fichier CSV depuis son nouvel emplacement avec séparateur ";"
+    $csvData = [];
+    if (($handle = fopen($savedFile['chemin_complet'], 'r')) !== FALSE) {
+        while (($row = fgetcsv($handle, 1000, ';')) !== FALSE) {
+            $csvData[] = $row;
+        }
+        fclose($handle);
+    }
 
     if (empty($csvData)) {
         http_response_code(400);
@@ -77,9 +111,26 @@ try {
         exit();
     }
 
-    // Vérifier l'en-tête
+    // Extraire les informations du nom de fichier
+    $filenameInfo = parseFilenameInfo($file['name']);
+
+    // Vérifier l'en-tête (nouveau format)
     $header = array_shift($csvData);
-    $expectedHeader = ['Fichier', 'Compte', 'Date opération', 'Date valeur', 'Libellé', 'Montant', 'Débit/Crédit', 'CB'];
+    $expectedColumns = [
+        'Date de comptabilisation',
+        'Libelle simplifie',
+        'Libelle operation',
+        'Reference',
+        'Informations complementaires',
+        'Type operation',
+        'Categorie',
+        'Sous categorie',
+        'Debit',
+        'Credit',
+        'Date operation',
+        'Date de valeur',
+        'Pointage operation'
+    ];
 
     // Nettoyer les en-têtes (enlever les BOM et espaces)
     $header = array_map(function ($h) {
@@ -112,38 +163,59 @@ try {
     ];
 
     foreach ($csvData as $lineNumber => $row) {
-        if (count($row) < 8) {
-            $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Nombre de colonnes insuffisant";
+        if (count($row) < 13) {
+            $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Nombre de colonnes insuffisant (attendu: 13, reçu: " . count($row) . ")";
             continue;
         }
 
         $stats['total']++;
 
         try {
-            $fichier = trim($row[0]);
-            $nomCompte = trim($row[1]);
-            $dateOperation = trim($row[2]);
-            $dateValeur = trim($row[3]);
-            $libelle = trim($row[4]);
-            $montant = trim($row[5]);
-            $debitCredit = strtoupper(trim($row[6]));
-            $cb = strtolower(trim($row[7])) === 'oui' || strtolower(trim($row[7])) === 'true' || trim($row[7]) === '1';
+            // Mapping des colonnes selon le nouveau format
+            // Index: 0=Date comptabilisation, 1=Libelle simplifie, 2=Libelle operation, 3=Reference, 
+            //        4=Informations complementaires, 5=Type operation, 6=Categorie, 7=Sous categorie,
+            //        8=Debit, 9=Credit, 10=Date operation, 11=Date valeur, 12=Pointage operation
+
+            $libelle = trim($row[2]); // Libelle operation
+            $reference = trim($row[3]) ?: null;
+            $informations_complementaires = trim($row[4]) ?: null;
+            $type_operation = trim($row[5]) ?: null;
+            $debit = trim($row[8]);
+            $credit = trim($row[9]);
+            $dateOperation = trim($row[10]);
+            $dateValeur = trim($row[11]);
+
+            // Déterminer le montant et le type (Débit/Crédit)
+            $montant = 0;
+            $debitCredit = '';
+
+            if (!empty($debit) && $debit !== '0' && $debit !== '0,00') {
+                $montant = str_replace(',', '.', $debit);
+                $montant = floatval($montant);
+                $debitCredit = 'D';
+            } elseif (!empty($credit) && $credit !== '0' && $credit !== '0,00') {
+                $montant = str_replace(',', '.', $credit);
+                $montant = floatval($montant);
+                $debitCredit = 'C';
+            } else {
+                $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Aucun montant valide trouvé dans Débit ou Crédit";
+                continue;
+            }
 
             // Convertir les dates au format PostgreSQL
-            // Accepte YYYY-MM-DD (format ISO) ou DD/MM/YYYY
-            $dateOperationObj = DateTime::createFromFormat('Y-m-d', $dateOperation);
+            $dateOperationObj = DateTime::createFromFormat('d/m/Y', $dateOperation);
             if ($dateOperationObj === false) {
-                $dateOperationObj = DateTime::createFromFormat('d/m/Y', $dateOperation);
+                $dateOperationObj = DateTime::createFromFormat('Y-m-d', $dateOperation);
             }
             if ($dateOperationObj === false) {
-                $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Format de date opération invalide (attendu: YYYY-MM-DD ou DD/MM/YYYY)";
+                $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Format de date opération invalide (attendu: DD/MM/YYYY ou YYYY-MM-DD)";
                 continue;
             }
             $dateOperation = $dateOperationObj->format('Y-m-d');
 
-            $dateValeurObj = DateTime::createFromFormat('Y-m-d', $dateValeur);
+            $dateValeurObj = DateTime::createFromFormat('d/m/Y', $dateValeur);
             if ($dateValeurObj === false) {
-                $dateValeurObj = DateTime::createFromFormat('d/m/Y', $dateValeur);
+                $dateValeurObj = DateTime::createFromFormat('Y-m-d', $dateValeur);
             }
             if ($dateValeurObj !== false) {
                 $dateValeur = $dateValeurObj->format('Y-m-d');
@@ -151,26 +223,17 @@ try {
                 $dateValeur = null;
             }
 
-            // Convertir le montant (remplacer la virgule par un point)
-            $montant = str_replace(',', '.', $montant);
-            $montant = floatval($montant);
-
-            // Normaliser Débit/Crédit
-            if (strtolower($debitCredit) === 'débit' || strtolower($debitCredit) === 'debit') {
-                $debitCredit = 'D';
-            } elseif (strtolower($debitCredit) === 'crédit' || strtolower($debitCredit) === 'credit') {
-                $debitCredit = 'C';
-            }
-
-            if ($debitCredit !== 'D' && $debitCredit !== 'C') {
-                $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Type de transaction invalide (attendu: D/C ou Débit/Crédit)";
+            // Utiliser le numéro de compte extrait du nom de fichier
+            $nomCompte = $filenameInfo['compte_numero'];
+            if (!$nomCompte) {
+                $stats['errors'][] = "Ligne " . ($lineNumber + 2) . ": Impossible d'extraire le numéro de compte du nom de fichier";
                 continue;
             }
 
             // Vérifier ou créer le compte
             $compte = $compteModel->getByNom($nomCompte);
             if (!$compte) {
-                $compteId = $compteModel->create($nomCompte, 'Créé automatiquement lors de l\'import');
+                $compteId = $compteModel->create($nomCompte, 'Créé automatiquement lors de l\'import - ' . basename($file['name']));
                 $stats['nouveaux_comptes'][] = $nomCompte;
             } else {
                 $compteId = $compte['id'];
@@ -182,11 +245,11 @@ try {
             }
 
             // Appliquer les tags
-            $tags = $tagModel->applyTagsToLibelle($libelle);
+            $tags = $tagModel->applyTagsToLibelle($libelle, $informationsComplementaires);
 
-            // Insérer l'opération avec référence à l'import
+            // Insérer l'opération avec référence à l'import et les nouvelles colonnes
             $operationData = [
-                'fichier' => $fichier,
+                'fichier' => basename($file['name']),
                 'import_id' => $importId,
                 'compte_id' => $compteId,
                 'date_operation' => $dateOperation,
@@ -194,8 +257,11 @@ try {
                 'libelle' => $libelle,
                 'montant' => $montant,
                 'debit_credit' => $debitCredit,
-                'cb' => $cb,
-                'tags' => json_encode($tags)
+                'cb' => $filenameInfo['cb'],
+                'tags' => json_encode($tags),
+                'reference' => $reference,
+                'informations_complementaires' => $informations_complementaires,
+                'type_operation' => $type_operation
             ];
 
             $operationModel->create($operationData);
