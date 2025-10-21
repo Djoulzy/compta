@@ -271,32 +271,49 @@
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .filters-row-secondary {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
+}
+
+.form-group-compact {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  height: 32px;
+  font-size: 0.6m;
 }
 
 .form-group-search {
   flex: 1;
-  min-width: 200px;
+  min-width: 280px;
+  max-width: 400px;
+  display: flex;
+  align-items: stretch;
 }
 
 .form-group-tags {
   flex: 2;
-  min-width: 300px;
+  min-width: 280px;
+  max-width: 400px;
+  display: flex;
+  align-items: stretch;
 }
 
 .form-group-search input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 0.35rem 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9em;
+  font-size: 0.85em;
+  height: 32px;
+  box-sizing: border-box;
 }
 
 .form-group-search input:focus {
@@ -307,11 +324,15 @@
 
 /* React-Select custom styles */
 .react-select-container {
-  font-size: 0.9em;
+  font-size: 0.85em;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .react-select__control {
-  min-height: 38px;
+  min-height: 32px !important;
+  height: 32px !important;
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
   box-shadow: none !important;
@@ -326,14 +347,29 @@
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
 }
 
+.react-select__value-container {
+  padding: 0 6px !important;
+  height: 30px !important;
+}
+
+.react-select__indicators {
+  height: 30px !important;
+}
+
+.react-select__indicator {
+  padding: 4px !important;
+}
+
 .react-select__multi-value {
   background-color: #007bff !important;
   border-radius: 3px !important;
+  margin: 1px !important;
 }
 
 .react-select__multi-value__label {
   color: white !important;
-  font-size: 0.85em !important;
+  font-size: 0.8em !important;
+  padding: 2px 4px !important;
 }
 
 .react-select__multi-value__remove {

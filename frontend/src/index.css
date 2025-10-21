@@ -258,18 +258,23 @@ table tr:hover {
 }
 
 .form-group-compact {
-  min-width: 150px;
-  flex: 1;
+  min-width: 100px;
+  max-width: 150px;
+  flex: 0 1 auto;
+  display: flex;
+  align-items: stretch;
 }
 
 .form-group-compact input,
 .form-group-compact select {
   width: 100%;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   background-color: white;
+  height: 32px;
+  box-sizing: border-box;
 }
 
 .form-group-compact input:focus,
@@ -285,10 +290,16 @@ table tr:hover {
 }
 
 .btn-compact {
-  padding: 0.4rem 0.8rem !important;
-  font-size: 1rem !important;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.95rem !important;
   min-width: auto !important;
   flex-shrink: 0;
+  width: auto;
+  height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Responsive pour les filtres compacts */
@@ -300,19 +311,12 @@ table tr:hover {
 
   .form-group-compact {
     min-width: 100%;
+    max-width: 100%;
   }
 
   .btn-compact {
     align-self: center;
     min-width: 120px;
-  }
-}
-
-@media (min-width: 769px) {
-  .form-group-compact:first-child {
-    flex: 2;
-    /* Le champ de recherche prend plus de place */
-    min-width: 250px;
   }
 }
 
